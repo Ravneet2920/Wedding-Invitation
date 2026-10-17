@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Invitation link generator</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 760px; margin: 2rem auto; padding: 0 1rem; color: #4a3140; }
+    h1 { font-size: 1.4rem; }
+    label { display: block; margin: 1rem 0 .3rem; font-weight: 600; }
+    textarea { width: 100%; padding: .6rem; font: inherit; border: 1px solid #d9b36a; border-radius: 6px; min-height: 160px; }
+    button, a.btn { font: inherit; padding: .4rem .9rem; margin: .2rem .2rem 0 0; border: 1px solid #c25a7b; background: #c25a7b; color: #fff; border-radius: 999px; cursor: pointer; text-decoration: none; display: inline-block; }
+    .ghost { background: transparent !important; color: #c25a7b !important; }
+    .row { border-top: 1px solid #eee; padding: .8rem 0; }
+    .row code { display: block; word-break: break-all; font-size: .85rem; color: #7a5f6b; margin: .3rem 0; }
+    .hint { color: #7a5f6b; font-size: .9rem; }
+    .who { margin-top: 1.4rem; }
+    .who-title { margin: 0 0 .6rem; font-weight: 600; }
+    .profiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; }
+    .profile { display: flex; flex-direction: column; align-items: center; gap: .35rem; padding: .8rem .4rem; margin: 0; border: 1.5px solid #ecd9de; background: #fff; color: #7a5f6b; border-radius: 14px; transition: all .2s ease; }
+    .profile:hover { border-color: #c25a7b; transform: translateY(-2px); }
+    .profile .av { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; font-size: 1.4rem; font-weight: 600; color: #c25a7b; background: #fce6e9; border: 2px solid #f3c9d3; }
+    .profile .nm { font-weight: 600; }
+    .profile[aria-pressed="true"] { border-color: #c25a7b; background: #fff3f6; color: #4a3140; box-shadow: 0 4px 14px rgba(194, 90, 123, .22); }
+    .profile[aria-pressed="true"] .av { background: #c25a7b; color: #fff; border-color: #c25a7b; }
+    .sending { margin: .8rem 0 0; font-size: .9rem; color: #7a5f6b; }
+    .sending b { color: #c25a7b; }
+    @media (max-width: 480px) { .profiles { grid-template-columns: repeat(2, 1fr); } }
+  </style>
+</head>
+<body>
+  <h1>Invitation link generator</h1>
+  <p class="hint">Type one guest per line as <b>Name, City</b> (optionally <b>Name, City, Line 2</b>; the second line defaults to W/F). Nothing is uploaded; links are built in your browser.</p>
+
+  <div class="who">
+    <p class="who-title">Who is sending?</p>
+    <div class="profiles" id="profiles" role="group" aria-label="Sender profile"></div>
+    <p class="sending" id="sending"></p>
+  </div>
+
+  <label for="list">Guests</label>
+  <textarea id="list" placeholder="Amarjeet Singh, Delhi&#10;Harpreet Kaur, Jammu&#10;Rohit Sharma, Pune, &amp; Family"></textarea>
+
+  <p><button id="go">Generate links</button></p>
+  <div id="out"></div>
+
+  <script>
+    // Local testing: links point to index.html next to this file.
+    // Before sharing, swap in the published URL: "https://chiran8541.github.io/Ravneet/"
+    const SITE_URL = new URL("index.html", location.href).href;
+
+    // Each profile has its own canned invitation line and sign-off.
+    const PROFILES = [
+      { id: "papa", label: "Papa", sender: "Pritpal Singh",
+        line: "You are warmly invited to the wedding of my elder daughter Ravneet Kour." },
+      { id: "mumma", label: "Mumma", sender: "Gurmeet Kour",
+        line: "You are warmly invited to the wedding of my elder daughter Ravneet Kour." },
+      { id: "harsheen", label: "Harsheen", sender: "Harsheen Kour",
+        line: "You are warmly invited to the wedding of my sister Ravneet Kour." },
+      { id: "taran", label: "Taran", sender: "Taranveer Singh",
+        line: "You are warmly invited to the wedding of my sister Ravneet Kour." },
+    ];
+    let profile = PROFILES.find((p) => p.id === localStorage.getItem("ravneet-profile")) || PROFILES[0];
+
+    const profilesBox = document.getElementById("profiles");
+    const sending = document.getElementById("sending");
+    function renderProfiles() {
+      profilesBox.replaceChildren();
+      PROFILES.forEach((p) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "profile";
+        b.setAttribute("aria-pressed", String(p === profile));
+        const av = document.createElement("span");
+        av.className = "av";
+        av.textContent = p.label[0];
+        const nm = document.createElement("span");
+        nm.className = "nm";
+        nm.textContent = p.label;
+        b.append(av, nm);
+        b.addEventListener("click", () => {
+          profile = p;
+          localStorage.setItem("ravneet-profile", p.id);
+          renderProfiles();
+          if (out.children.length) generate();
+        });
+        profilesBox.append(b);
+      });
+      sending.replaceChildren("Messages will be signed by ");
+      const who = document.createElement("b");
+      who.textContent = profile.sender;
+      sending.append(who);
+    }
+
+    const list = document.getElementById("list");
+    const out = document.getElementById("out");
+    list.value = localStorage.getItem("ravneet-list") || "";
+
+    function makeLink(name, city, sub) {
+      const u = new URL(SITE_URL);
+      u.searchParams.set("to", name);
+      if (city) u.searchParams.set("city", city);
+      if (sub) u.searchParams.set("sub", sub);
+      return u.toString();
+    }
+
+    function generate() {
+      localStorage.setItem("ravneet-list", list.value);
+      out.replaceChildren();
+
+      list.value.split("\n").map((l) => l.trim()).filter(Boolean).forEach((line) => {
+        const [name, city, sub] = line.split(",").map((s) => s.trim());
+        const link = makeLink(name, city, sub);
+        const msg = `To - ${name} (${sub || "W/F"}),\n\n${profile.line}\n\n*Invitation link: -* ${link}\n\nBest Regards,\n${profile.sender}`;
+
+        const row = document.createElement("div");
+        row.className = "row";
+        const title = document.createElement("b");
+        title.textContent = [name, city].filter(Boolean).join(", ");
+        const code = document.createElement("code");
+        code.textContent = link;
+
+        const copy = document.createElement("button");
+        copy.textContent = "Copy link";
+        copy.addEventListener("click", async () => {
+          await navigator.clipboard.writeText(link);
+          copy.textContent = "Copied ✓";
+          setTimeout(() => (copy.textContent = "Copy link"), 1500);
+        });
+
+        const wa = document.createElement("a");
+        wa.className = "btn";
+        wa.target = "_blank";
+        wa.rel = "noopener";
+        wa.href = "https://wa.me/?text=" + encodeURIComponent(msg);
+        wa.textContent = "Send on WhatsApp";
+
+        const open = document.createElement("a");
+        open.className = "btn ghost";
+        open.target = "_blank";
+        open.rel = "noopener";
+        open.href = link;
+        open.textContent = "Preview";
+
+        row.append(title, code, copy, wa, open);
+        out.append(row);
+      });
+    }
+    document.getElementById("go").addEventListener("click", generate);
+    renderProfiles();
+  </script>
+</body>
+</html>
