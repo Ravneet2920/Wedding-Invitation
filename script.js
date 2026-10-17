@@ -63,19 +63,12 @@ document.querySelectorAll("[data-cal]").forEach((btn) => {
   });
 });
 
-// Personalised greeting from the link: ?to=Amarjeet Singh&city=Delhi&sub=W/F
+// Personalised greeting from the link: ?to=Amarjeet Singh&city=Delhi
+// The guest name is shown only on the opening seal screen (below), not inside the card.
 // Values are written with textContent, so nothing in the URL can inject markup.
 const params = new URLSearchParams(location.search);
 const to = (params.get("to") || "").trim().slice(0, 60);
-if (to) {
-  const city = (params.get("city") || "").trim().slice(0, 40);
-  const sub = (params.get("sub") || "W/F").trim().slice(0, 40);
-  const guest = document.getElementById("guest");
-  guest.querySelector(".guest-name").textContent = city ? `${to}, ${city}` : to;
-  guest.querySelector(".guest-sub").textContent = sub;
-  guest.hidden = false;
-  document.title = `${to} · Ravneet weds Chiranjeev`;
-}
+if (to) document.title = `${to} · Ravneet weds Chiranjeev`;
 
 // Opening seal: guests tap to open. Skipped on refresh within a session, or with ?intro=0
 (() => {
